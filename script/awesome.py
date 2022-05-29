@@ -19,7 +19,7 @@ def alpha_blend(input_image: np.ndarray, segmentation_mask: np.ndarray, alpha: f
     blended = blended.astype(np.uint8)
     return blended
 
-def Feature_point(image, *args):
+def Feature_point(image, thres=20, r=8, iter=50, *args):
 
     image = image.astype(int)
     h, w = image.shape[0], image.shape[1]
@@ -29,15 +29,12 @@ def Feature_point(image, *args):
         center = [h//2, w//2]
     center1 = center
     test = np.zeros([h, w, 3], dtype=np.uint8)
-    # test[center[0], center[1], 0] = 255
 
-    iter = 50
     k = 0
     while True:
-        features = []
+
         # stage 1
-        thres = 20
-        r = 8
+        features = []
         for i in range(18):
             delta_y, delta_x = r*np.sin(20*i * (np.pi/180)), r*np.cos(20*i * (np.pi/180))
             delta_y = delta_y.astype(int)
@@ -52,7 +49,6 @@ def Feature_point(image, *args):
                     break
                 ray_y1, ray_x1 = ray_y2, ray_x2
                 ray_y2, ray_x2 = ray_y2+delta_y, ray_x2+delta_x
-
         # for f in features:
         #     test[f[0], f[1], 1] = 255
 
@@ -76,10 +72,10 @@ def Feature_point(image, *args):
                         break
                     ray_y1, ray_x1 = ray_y2, ray_x2
                     ray_y2, ray_x2 = ray_y2+delta_y, ray_x2+delta_x
-
         # for f in features2:
         #     test[f[0], f[1], 2] = 255
         
+        # update center
         total_features = [[f[0], f[1]] for f in features] + [[f[0], f[1]] for f in features2]
         total_features = np.array(total_features)
         center2 = total_features.mean(axis=0, dtype=np.uint)
@@ -122,6 +118,5 @@ for idx in range(nr_image):
     ax.axis('off')
     plt.draw()
     plt.pause(0.01)
-# plt.show()
 plt.close()
 
