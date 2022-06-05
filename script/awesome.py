@@ -19,7 +19,7 @@ def alpha_blend(input_image: np.ndarray, segmentation_mask: np.ndarray, alpha: f
     blended = blended.astype(np.uint8)
     return blended
 
-def Feature_point(image, thres=20, r=8, iter=50, *args):
+def Feature_point(image, *args, thres=20, r=8, iter=50):
 
     image = image.astype(int)
     h, w = image.shape[0], image.shape[1]
@@ -83,7 +83,7 @@ def Feature_point(image, thres=20, r=8, iter=50, *args):
         #     for ww in range(3):
         #         test[center2[0]-1+hh, center2[1]-1+ww, 0:2] = 255
 
-        if distance.euclidean(center1, center2) < 10:
+        if distance.euclidean(center1, center2) < 5:
             center = center2
             break
         center1 = center2
@@ -94,8 +94,9 @@ def Feature_point(image, thres=20, r=8, iter=50, *args):
 
     return total_features, test, center
 
-dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S2\17'
+dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S5\16'
 nr_image = len([name for name in os.listdir(dataset_path) if name.endswith('.jpg')])
+print(nr_image)
 image = cv2.imread(os.path.join(dataset_path, '0.jpg'))
 h = image.shape[0]
 w = image.shape[1]
@@ -107,16 +108,19 @@ for idx in range(nr_image):
     image_name = os.path.join(dataset_path, f'{idx}.jpg')
     image = cv2.imread(image_name)
     if idx==0:
-        features, test, center = Feature_point(image)
+        features, test, center = Feature_point(image, thres=20, r=8, iter=50)
     else:
-        features, test, center = Feature_point(image, center)
+        features, test, center = Feature_point(image, center, thres=20, r=8, iter=50)
     for f in features:
-        test[f[0], f[1], 2] = 255
-    blended = alpha_blend(image, test, 0.4)
+        test[f[0], f[1], 1] = 255
+    for hh in range(3):
+        for ww in range(3):
+            test[center[0]-1+hh, center[1]-1+ww, 0:2] = 255
+    blended = alpha_blend(image, test, 0.5)
     ax.clear()
     ax.imshow(blended)
     ax.axis('off')
     plt.draw()
-    plt.pause(0.01)
+    plt.pause(0.005)
 plt.close()
 

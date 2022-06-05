@@ -17,13 +17,18 @@ def true_negative_curve(confs: np.ndarray, labels: np.ndarray, nr_thresholds: in
     """
     thresholds = np.linspace(0, 1, nr_thresholds)
     tn_rates = []
+    tn_record = []
+    n_record = []
     for th in thresholds:
         # thresholding
         predict_negatives = (confs < th).astype(int)
         # true negative
         tn = np.sum((predict_negatives * (1 - labels) > 0).astype(int))
-        tn_rates.append(tn / np.sum(1 - labels))
-    return np.array(tn_rates)
+        n = np.sum(1 - labels)
+        tn_record.append(tn)
+        n_record.append(n)
+        tn_rates.append(tn / n)
+    return np.array(tn_rates), np.array(tn_record), np.array(n_record)
 
 
 def mask_iou(mask1: np.ndarray, mask2: np.ndarray):
@@ -62,32 +67,51 @@ def benchmark(dataset_path: str, subjects: list):
     for subject in subjects:
         for action_number in range(26):
             image_folder = os.path.join(dataset_path, subject, f'{action_number + 1:02d}')
+            solution_folder = os.path.join(dataset_path, subject+"_solution", f'{action_number + 1:02d}')
             sequence_idx += 1
             nr_image = len([name for name in os.listdir(image_folder) if name.endswith('.jpg')])
             iou_meter_sequence.reset()
+            label_validity_temp = []
+            output_conf_temp = []
             label_name = os.path.join(image_folder, '0.png')
             if not os.path.exists(label_name):
                 print(f'Labels are not available for {image_folder}')
                 continue
-            for idx in tqdm(range(nr_image), desc=f'[{sequence_idx:03d}] {image_folder}'):
-                image_name = os.path.join(image_folder, f'{idx}.jpg')
+            conf_name = os.path.join(solution_folder, 'conf.txt')
+            with open(conf_name, 'r') as f:
+                confs = f.readlines()
+            # for idx in tqdm(range(nr_image), desc=f'[{sequence_idx:03d}] {image_folder}'):
+            for idx in range(nr_image):
                 label_name = os.path.join(image_folder, f'{idx}.png')
-                image = cv2.imread(image_name)
+                output_name = os.path.join(solution_folder, f'{idx}.png')
                 label = cv2.imread(label_name)
                 # TODO: Modify the code below to run your method or load your results from disk
                 # output, conf = my_awesome_algorithm(image)
-                output = label
-                conf = 1.0
+                output = cv2.imread(output_name)
+                conf = float(confs[idx])
                 if np.sum(label.flatten()) > 0:
                     label_validity.append(1.0)
+                    label_validity_temp.append(1.0)
                     iou = mask_iou(output, label)
                     iou_meter.update(conf * iou)
                     iou_meter_sequence.update(conf * iou)
                 else:  # empty ground truth label
                     label_validity.append(0.0)
+                    label_validity_temp.append(0.0)
                 output_conf.append(conf)
-            # print(f'[{sequence_idx:03d}] Weighted IoU: {iou_meter_sequence.avg()}')
-    tn_rates = true_negative_curve(np.array(output_conf), np.array(label_validity))
+                output_conf_temp.append(conf)
+            tn_rates_temp, tn_temp, n_temp = true_negative_curve(np.array(output_conf_temp), np.array(label_validity_temp))
+            atnr_temp = np.mean(tn_rates_temp)
+            atn_temp = np.mean(tn_temp)
+            an_temp = np.mean(n_temp)
+            wiou_temp = iou_meter_sequence.avg()
+            score_temp = 0.7 * wiou_temp + 0.3 * atnr_temp
+            print(f'\n[{sequence_idx:03d}] Weighted IoU: {wiou_temp:.4f}')
+            print(f'Average true negative: {atn_temp:.4f}')
+            print(f'Average negative: {an_temp:.4f}')
+            print(f'Average true negative rate: {atnr_temp:.4f}')
+            print(f'Benchmark score: {score_temp:.4f}')
+    tn_rates, tn, n = true_negative_curve(np.array(output_conf), np.array(label_validity))
     wiou = iou_meter.avg()
     atnr = np.mean(tn_rates)
     score = 0.7 * wiou + 0.3 * atnr
@@ -100,5 +124,5 @@ def benchmark(dataset_path: str, subjects: list):
 
 if __name__ == '__main__':
     dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public'
-    subjects = ['S1', 'S2', 'S3', 'S4']
+    subjects = ['S4']
     benchmark(dataset_path, subjects)
