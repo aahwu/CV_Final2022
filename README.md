@@ -14,7 +14,7 @@ Evaluation for S1 ~ S4
 Visualization for a specific video fragment
 
 ## main.py
-For exacute preprocessing.py, deepVOG.py, starburst.py
+For execute preprocessing.py, deepVOG.py, starburst.py
 
 Should be runned at path "...\script"
 
