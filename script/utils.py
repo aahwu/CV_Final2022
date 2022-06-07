@@ -40,9 +40,11 @@ if __name__ == '__main__':
     import cv2
     import matplotlib
     import matplotlib.pyplot as plt
-    import deepeye
 
-    dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S4\01'
+    # change the dataset & label you want to show
+    dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S5\01'
+    label_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S5_solution\01'
+    
     nr_image = len([name for name in os.listdir(dataset_path) if name.endswith('.jpg')])
     print(nr_image)
     image = cv2.imread(os.path.join(dataset_path, '0.jpg'))
@@ -54,9 +56,9 @@ if __name__ == '__main__':
     ax = fig.add_axes([0, 0, 1, 1])
 
 
-    for idx in range(1):
+    for idx in range(nr_image):
         image_name = os.path.join(dataset_path, f'{idx}.jpg')
-        label_name = os.path.join(dataset_path, f'{idx}.png')
+        label_name = os.path.join(label_path, f'{idx}.png')
         image = cv2.imread(image_name)
         label = cv2.imread(label_name)
         blended = alpha_blend(image, label, 0.5)
@@ -64,5 +66,5 @@ if __name__ == '__main__':
         ax.imshow(blended)
         ax.axis('off')
         plt.draw()
-        # plt.pause(0.01)
+        plt.pause(0.01)
     plt.close()

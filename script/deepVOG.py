@@ -1,28 +1,10 @@
 from DeepVOG_model import load_DeepVOG
-import skimage.io as ski
 import numpy as np
 import os
 import cv2
 from tqdm import tqdm
-    
-def enhance_contrast(img):
-    lab= cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-    l_channel, a, b = cv2.split(lab)
 
-    # Applying CLAHE to L-channel
-    # feel free to try different values for the limit and grid size:
-    clahe = cv2.createCLAHE(clipLimit=30.0, tileGridSize=(8,8))
-    cl = clahe.apply(l_channel)
-
-    # merge the CLAHE enhanced L-channel with the a and b channel
-    limg = cv2.merge((cl,a,b))
-
-    # Converting image from LAB Color model to BGR color spcae
-    enhanced_img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
-    
-    return enhanced_img
-
-def result(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.5):
+def deepVOG(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.5):
 
     # load model
     model = load_DeepVOG()
@@ -33,7 +15,6 @@ def result(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.5
             sequence_idx += 1
 
             # folders path
-            image_folder = os.path.join(dataset_path, subject, f'{action_number + 1:02d}')
             preimage_folder = os.path.join(dataset_path, subject+"_preimage", f'{action_number + 1:02d}')
             solution_folder = os.path.join(dataset_path, subject+"_solution", f'{action_number + 1:02d}')
 
@@ -49,37 +30,21 @@ def result(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.5
             conf_real_name = os.path.join(solution_folder, 'conf_real.txt')
             open(conf_real_name, 'w').close()
 
-            nr_image = len([name for name in os.listdir(image_folder) if name.endswith('.jpg')])
-            for idx in tqdm(range(nr_image), desc=f'[{sequence_idx:03d}] {image_folder}'):
+            nr_image = len([name for name in os.listdir(preimage_folder) if name.endswith('.jpg')])
+            for idx in tqdm(range(nr_image), desc=f'[{sequence_idx:03d}] {preimage_folder}'):
                 
                 # file path
-                image_name = os.path.join(image_folder, f'{idx}.jpg')
                 label_name = os.path.join(solution_folder, f'{idx}.png')
                 preimage_name = os.path.join(preimage_folder, f'{idx}.jpg')
 
-                # load image
-                image = cv2.imread(image_name)
-
-                # preprocessing
-                # --brightness
-                # mul = 4
-                # image = image.astype(float)
-                # image_mul = mul - image*((mul-1)/255)
-                # image *= image_mul
-                # image_thres = image <= 255
-                # image = image*image_thres + 255*(1-image_thres)
-
-                # --contrastion
-                image = enhance_contrast(image)
+                # load preimage
+                image = cv2.imread(preimage_name)
 
                 # inference
                 image = cv2.resize(image, (320, 240), interpolation=cv2.INTER_LINEAR)
                 img = np.zeros((1, 240, 320, 3))
                 img[:,:,:,:] = (image[:, :, 0]/255).reshape(1, 240, 320, 1)
                 prediction = model.predict(img)
-                # --output
-                image = image.astype(np.uint8)
-                cv2.imwrite(preimage_name, image)
 
                 # label
                 # --threshold
@@ -109,9 +74,3 @@ def result(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.5
                 # --remove conf_real.txt for submission
                 if os.path.exists(conf_real_name) == True:
                     os.remove(conf_real_name)
-
-if __name__ == '__main__':
-
-    dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public'
-    subjects = ['S5']
-    result(dataset_path, subjects, conf_thres=0.7)

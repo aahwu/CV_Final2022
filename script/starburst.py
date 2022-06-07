@@ -1,24 +1,9 @@
-import matplotlib.pyplot as plt
-import deepeye
-import numpy as np
-import random
-from scipy.spatial import distance
 import os
 import cv2
-
-def alpha_blend(input_image: np.ndarray, segmentation_mask: np.ndarray, alpha: float = 0.5):
-    """Alpha Blending utility to overlay segmentation masks on input images
-    Args:
-        input_image: a np.ndarray with 1 or 3 channels
-        segmentation_mask: a np.ndarray with 3 channels
-        alpha: a float value
-    """
-    if len(input_image.shape) == 2:
-        input_image = np.stack((input_image,) * 3, axis=-1)
-    blended = input_image.astype(np.float32) * alpha + segmentation_mask.astype(np.float32) * (1 - alpha)
-    blended = np.clip(blended, 0, 255)
-    blended = blended.astype(np.uint8)
-    return blended
+import numpy as np
+from scipy.spatial import distance
+import deepeye
+from tqdm import tqdm
 
 def Feature_point(image, *args, thres=20, r=4):
 
@@ -124,43 +109,83 @@ def RANSAC(f, iter, thres):
             if inliner > max:
                 max = inliner
                 H_best = H
-    print(max/N)
     return H_best
 
-def test_if_model_work():
+def starburst(dataset_path: str, subjects: list):
+
+    # load model
     eye_tracker = deepeye.DeepEye()
-    dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\model'
-    image = cv2.imread(os.path.join(dataset_path, "147.jpg"))
-    h, w = image.shape[0], image.shape[1]
-    frame_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    coords = eye_tracker.run(frame_gray)
-    center = [coords[1], coords[0]]
-    features, _ = Feature_point(image, center, thres=20, r=4)
-    test = np.zeros([h, w, 3], dtype=np.uint8)
+    sequence_idx = 0
+    for subject in subjects:
+        for action_number in range(26):
+            sequence_idx += 1
 
-    for f in features:
-        test[f[0], f[1], 1] = 255
-    cv2.imwrite(os.path.join(dataset_path, "test.png"), test)
-    thres = 5E-4
-    epsilon = 8E-4
-    H = RANSAC(features, iter=1000, thres=thres)
+            # folders path
+            preimage_folder = os.path.join(dataset_path, subject+"_preimage", f'{action_number + 1:02d}')
+            solution_folder = os.path.join(dataset_path, subject+"_solution", f'{action_number + 1:02d}')
 
-    x_coord = np.linspace(0,640,640)
-    y_coord = np.linspace(0,480,480)
-    X_coord, Y_coord = np.meshgrid(x_coord, y_coord)
-    Z_coord = H[0]/(-H[5]) * X_coord ** 2 + H[1]/(-H[5]) * X_coord * Y_coord + H[2]/(-H[5]) * Y_coord**2 + H[3]/(-H[5]) * X_coord + H[4]/(-H[5]) * Y_coord
-    ellipse = Z_coord-1 >= thres-epsilon
-    test[:, :, 0] = ellipse.astype(np.uint8) * 255
-    blended = alpha_blend(image, test, 0.5)
+            # check whether folders exist
+            if os.path.exists(solution_folder) != True:
+                os.mkdir(solution_folder)
+            if os.path.exists(preimage_folder) != True:
+                os.mkdir(preimage_folder)
+            
+            # create and clear conf.txt, conf_real.txt
+            # conf_name = os.path.join(solution_folder, 'conf.txt')
+            # open(conf_name, 'w').close()
+            # conf_real_name = os.path.join(solution_folder, 'conf_real.txt')
+            # open(conf_real_name, 'w').close()
 
-    cv2.imwrite(os.path.join(dataset_path, "test_ellipse.png"), blended)
-    cv2.imshow('DeepEye', blended)
+            nr_image = len([name for name in os.listdir(preimage_folder) if name.endswith('.jpg')])
+            for idx in tqdm(range(nr_image), desc=f'[{sequence_idx:03d}] {preimage_folder}'):
+                
+                # file path
+                label_name = os.path.join(solution_folder, f'{idx}.png')
+                preimage_name = os.path.join(preimage_folder, f'{idx}.jpg')
 
-    cv2.waitKey(0)
+                # load image
+                image = cv2.imread(preimage_name)
+                h, w = image.shape[0], image.shape[1]
 
+                # inference
+                frame_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                coords = eye_tracker.run(frame_gray)
+                center = [coords[1], coords[0]]
+                features, _ = Feature_point(image, center, thres=20, r=4)
 
-if __name__ == "__main__":
-    # If model works, the "test_prediction.png" should show the segmented area of pupil from "test_image.png"
-    test_if_model_work()
+                thres = 5E-4
+                epsilon = 8E-4
+                test = np.zeros([h, w, 3], dtype=np.uint8)
+                H = RANSAC(features, iter=500, thres=thres)
+                x_coord = np.linspace(0,640,640)
+                y_coord = np.linspace(0,480,480)
+                X_coord, Y_coord = np.meshgrid(x_coord, y_coord)
+                Z_coord = H[0]/(-H[5]) * X_coord ** 2 + H[1]/(-H[5]) * X_coord * Y_coord + H[2]/(-H[5]) * Y_coord**2 + H[3]/(-H[5]) * X_coord + H[4]/(-H[5]) * Y_coord
+                ellipse = Z_coord-1 >= thres-epsilon
+                test[:, :, 0] = ellipse.astype(np.uint8) * 255
 
+                # label
+                # --output
+                cv2.imwrite(label_name, test[:, :, 0])
+                
+                # # confidence
+                # # --average probability of label
+                # prediction *= prediction_thres
+                # if np.sum(prediction_thres[0,:,:,1])==0:
+                #     conf_real = 0
+                # else:
+                #     conf_real = np.sum(prediction[0,:,:,1])/np.sum(prediction_thres[0,:,:,1])
+                # # --threshold
+                # if conf_real < conf_thres:
+                #     conf = 0
+                # else:
+                #     conf = 1
+                # # --output
+                # # with open(conf_real_name, 'a') as f:
+                # #     f.write(str(conf_real) + '\n')
+                # with open(conf_name, 'a') as f:
+                #     f.write(str(conf) + '\n')
+                # # --remove conf_real.txt for submission
+                # if os.path.exists(conf_real_name) == True:
+                #     os.remove(conf_real_name)
