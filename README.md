@@ -1,4 +1,5 @@
 # CV_Final2022
+Final project for Computer Vision class in 2022
 
 ## The directory architecture:
 
