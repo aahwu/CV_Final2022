@@ -1,12 +1,10 @@
 # CV_Final2022
 
-## The directory architecture
+## The directory architecture:
 
-|---CV22S_Ganzin
-
-    |---dataset
-
-    |---script 
+    |---CV22S_Ganzin
+        |---dataset
+        |---script 
 
 ## eval.py
 Evaluation for S1 ~ S4
