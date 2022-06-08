@@ -118,6 +118,7 @@ def RANSAC(center_d, f, iter, thres, *args):
     k = 0
     max = 0
     while k<iter:
+        k += 1
         ran_index = np.random.randint(f.shape[0], size=5)
         ran_point = f[ran_index]
         H = ellipse_fitting(ran_point)
@@ -129,7 +130,6 @@ def RANSAC(center_d, f, iter, thres, *args):
         else:
             center = ellipse_center(H)
             dist = distance.euclidean(center_d, center)
-            k += 1
             if dist > 10 or H[5]==0:
                 pass
             else:
@@ -202,7 +202,7 @@ def starburst(dataset_path: str, subjects: list):
                 if H_last.any() == False:
                     H, inliner = RANSAC(center, features, 1000, thres)
                 else:
-                    H, inliner = RANSAC(center, features, 200, thres, H_last)
+                    H, inliner = RANSAC(center, features, 400, thres, H_last)
                 H_last = H
                 x_coord = np.linspace(0,640,640)
                 y_coord = np.linspace(0,480,480)
