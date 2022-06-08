@@ -101,15 +101,13 @@ def ellipse_axis_length(a):
     a = a.reshape(-1, 1)
     b,c,d,f,g,a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
     up = 2*(a*f*f+c*d*d+g*b*b-2*b*d*f-a*c*g)
-    down1=(b*b-a*c)*( (c-a)*np.sqrt(1+4*b*b/((a-c)*(a-c)))-(c+a))
-    down2=(b*b-a*c)*( (a-c)*np.sqrt(1+4*b*b/((a-c)*(a-c)))-(c+a))
-    res1=np.sqrt(up/down1)
-    res2=np.sqrt(up/down2)
-    if np.isnan(res1):
-        res1 = 0
-    if np.isnan(res2):
-        res2 = 0
-    return (int(res1), int(res2))
+    down1=(b*b-a*c)*( (-1)*np.sqrt((a-c)**2+4*b*b)-(c+a))
+    down2=(b*b-a*c)*( (1)*np.sqrt((a-c)**2+4*b*b)-(c+a))
+    if down1==0:
+        ratio = 1E2
+    else:
+        ratio = np.sqrt(down2/down1)
+    return ratio
 
 def RANSAC(center_d, f, iter, thres, *args):
     if args:
@@ -132,12 +130,10 @@ def RANSAC(center_d, f, iter, thres, *args):
             center = ellipse_center(H)
             dist = distance.euclidean(center_d, center)
             k += 1
-            if dist > 10:
+            if dist > 10 or H[5]==0:
                 pass
             else:
                 inliner = 0
-                if H[5] < 0:
-                    H[:] *= -1
                 for i in range(N):
                     Z = H[0]/(-H[5]) * f[i, 1] ** 2 + H[1]/(-H[5]) * f[i, 1] * f[i, 0] + H[2]/(-H[5]) * f[i, 0]**2 + H[3]/(-H[5]) * f[i, 1] + H[4]/(-H[5]) * f[i, 0]
                     dist = abs(Z - 1)
@@ -159,8 +155,8 @@ def starburst(dataset_path: str, subjects: list):
         solution_dataset = os.path.join(dataset_path, subject+"_solution")
         if os.path.exists(solution_dataset) != True:
             os.mkdir(solution_dataset)
-        H_last = 0
-        for action_number in range(1, 26):
+        H_last = np.zeros(6)
+        for action_number in range(26):
             sequence_idx += 1
 
             # folders path
@@ -203,22 +199,19 @@ def starburst(dataset_path: str, subjects: list):
                 thres = 5E-4
                 epsilon = 8E-4
                 test = np.zeros([h, w, 3], dtype=np.uint8)
-                if H_last == 0:
+                if H_last.any() == False:
                     H, inliner = RANSAC(center, features, 1000, thres)
                 else:
                     H, inliner = RANSAC(center, features, 200, thres, H_last)
-                    H_last = H
+                H_last = H
                 x_coord = np.linspace(0,640,640)
                 y_coord = np.linspace(0,480,480)
                 X_coord, Y_coord = np.meshgrid(x_coord, y_coord)
                 Z_coord = H[0]/(-H[5]) * X_coord ** 2 + H[1]/(-H[5]) * X_coord * Y_coord + H[2]/(-H[5]) * Y_coord**2 + H[3]/(-H[5]) * X_coord + H[4]/(-H[5]) * Y_coord
                 ellipse = Z_coord-1 >= thres-epsilon
                 test[:, :, 1] = ellipse.astype(np.uint8) * 255
-                axis = ellipse_axis_length(H)
-                if axis[1]==0:
-                    axis_ratio = 10
-                else:
-                    axis_ratio = axis[0]/axis[1]
+                axis_ratio = ellipse_axis_length(H)
+
                 # for f in features:
                 #     test[f[0], f[1], 1] = 0
                 #     test[f[0], f[1], 2] = 255
