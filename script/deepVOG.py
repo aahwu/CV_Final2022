@@ -11,6 +11,11 @@ def deepVOG(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.
 
     sequence_idx = 0
     for subject in subjects:
+
+        solution_dataset = os.path.join(dataset_path, subject+"_solution")
+        if os.path.exists(solution_dataset) != True:
+            os.mkdir(solution_dataset)
+
         for action_number in range(26):
             sequence_idx += 1
 

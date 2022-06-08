@@ -42,8 +42,8 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     # change the dataset & label you want to show
-    dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S5\01'
-    label_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S5_solution\01'
+    dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S4\26'
+    label_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S4_solution\26'
     
     nr_image = len([name for name in os.listdir(dataset_path) if name.endswith('.jpg')])
     print(nr_image)

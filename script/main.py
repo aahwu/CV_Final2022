@@ -1,6 +1,6 @@
 from preprocessing import preprocessing
 # from deepVOG import deepVOG
-# from starburst import starburst
+from starburst import starburst
 
 if __name__ == '__main__':
 
@@ -9,7 +9,7 @@ if __name__ == '__main__':
     # change the path to your public dataset
     subjects = ['S1']
     # preprocessing
-    # preprocessing(dataset_path, subjects)
+    preprocessing(dataset_path, subjects)
 
     # choose one model
     # deepVOG(dataset_path, subjects, conf_thres=0.7, nn_thres=0.5)

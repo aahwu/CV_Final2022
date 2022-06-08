@@ -9,7 +9,7 @@ def enhance_contrast(img):
 
     # Applying CLAHE to L-channel
     # feel free to try different values for the limit and grid size:
-    clahe = cv2.createCLAHE(clipLimit=30.0, tileGridSize=(8,8))
+    clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8,8))
     cl = clahe.apply(l_channel)
 
     # merge the CLAHE enhanced L-channel with the a and b channel
@@ -34,6 +34,11 @@ def preprocessing(dataset_path: str, subjects: list):
 
     sequence_idx = 0
     for subject in subjects:
+
+        preimage_dataset = os.path.join(dataset_path, subject+"_preimage")
+        if os.path.exists(preimage_dataset) != True:
+            os.mkdir(preimage_dataset)
+
         for action_number in range(26):
             sequence_idx += 1
 
