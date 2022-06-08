@@ -151,7 +151,7 @@ def starburst(dataset_path: str, subjects: list):
         if os.path.exists(solution_dataset) != True:
             os.mkdir(solution_dataset)
         H_last = 0
-        for action_number in range(25, 26):
+        for action_number in range(26):
             sequence_idx += 1
 
             # folders path
