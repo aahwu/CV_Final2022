@@ -30,6 +30,14 @@ def brightness(img, mul):
 
     return brightened_img
 
+def gamma(img, ga):
+
+    img = img.astype(float)
+    img = np.power(img/float(np.max(img)), ga)
+    img *= 255
+
+    return img
+
 def preprocessing(dataset_path: str, subjects: list):
 
     sequence_idx = 0
@@ -62,10 +70,13 @@ def preprocessing(dataset_path: str, subjects: list):
 
                 # preprocessing
                 # --brightness
-                # image = brightness(image)
+                # image = brightness(image, 6)
+                
+                # --gamma
+                image = gamma(image, 0.5)
 
                 # --contrastion
-                image = enhance_contrast(image)
+                # image = enhance_contrast(image)
                 # --output
                 image = image.astype(np.uint8)
                 cv2.imwrite(preimage_name, image)
