@@ -21,13 +21,19 @@ Should be runned at path "...\script"
 ## preprocessing.py
 Preprocessing images
 
+It will generate the folder "public/Sx_preimage" and write images to the corresponing folders "public/Sx_preimage/xx"
+
 ## deepVOG.py
 deepVOG model
+
+It will generate the folder "public/Sx_solution" and write label images to the corresponing folders "public/Sx_solution/xx"
 
 environment: https://github.com/pydsgz/DeepVOG
 
 ## starburst.py
 deepeye model & starburst algorithm
+
+It will generate the folder "public/Sx_solution" and write label images to the corresponing folders "public/Sx_solution/xx"
 
 environment: https://github.com/Fjaviervera/DeepEye
 
