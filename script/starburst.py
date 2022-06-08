@@ -84,8 +84,34 @@ def ellipse_fitting(f):
     H = V[:, -1]
     return H
 
-def RANSAC(f, iter, thres):
-    H_best = np.zeros(6)
+def ellipse_center(a):
+    a = a.reshape(-1, 1)
+    b,c,d,f,g,a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
+    num = b*b-a*c
+    x0=(c*d-b*f)/num
+    y0=(a*f-b*d)/num
+    return (int(y0)+1, int(x0)+1)
+
+def ellipse_angle_of_rotation(a):
+    a = a.reshape(-1, 1)
+    b,c,d,f,g,a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
+    return int(np.rad2deg(0.5*np.arctan(2*b/(a-c))))
+
+def ellipse_axis_length(a):
+    a = a.reshape(-1, 1)
+    b,c,d,f,g,a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
+    up = 2*(a*f*f+c*d*d+g*b*b-2*b*d*f-a*c*g)
+    down1=(b*b-a*c)*( (c-a)*np.sqrt(1+4*b*b/((a-c)*(a-c)))-(c+a))
+    down2=(b*b-a*c)*( (a-c)*np.sqrt(1+4*b*b/((a-c)*(a-c)))-(c+a))
+    res1=np.sqrt(up/down1)
+    res2=np.sqrt(up/down2)
+    return (int(res1), int(res2))
+
+def RANSAC(center_d, f, iter, thres, *args):
+    if args:
+        H_best = args[0]    
+    else:
+        H_best = np.zeros(6)
     N = f.shape[0]
     k = 0
     max = 0
@@ -96,7 +122,9 @@ def RANSAC(f, iter, thres):
         A = -(H[1]**2-4*H[0]*H[2])
         B = 4*H[0]*H[4] - 2*H[1]*H[3]
         C = 4*H[0]*H[5] - H[3]**2
-        if (A <= 0) or (B**2-4*A*C<=0):
+        center = ellipse_center(H)
+        dist = distance.euclidean(center_d, center)
+        if (A <= 0) or (B**2-4*A*C<=0) or dist > 10:
             pass
         else:
             k += 1
@@ -109,7 +137,7 @@ def RANSAC(f, iter, thres):
             if inliner > max:
                 max = inliner
                 H_best = H
-    return H_best
+    return H_best, max/N
 
 def starburst(dataset_path: str, subjects: list):
 
@@ -122,8 +150,8 @@ def starburst(dataset_path: str, subjects: list):
         solution_dataset = os.path.join(dataset_path, subject+"_solution")
         if os.path.exists(solution_dataset) != True:
             os.mkdir(solution_dataset)
-            
-        for action_number in range(26):
+        H_last = 0
+        for action_number in range(25, 26):
             sequence_idx += 1
 
             # folders path
@@ -141,6 +169,10 @@ def starburst(dataset_path: str, subjects: list):
             # open(conf_name, 'w').close()
             # conf_real_name = os.path.join(solution_folder, 'conf_real.txt')
             # open(conf_real_name, 'w').close()
+            inliner_name = os.path.join(solution_folder, 'inliner.txt')
+            open(inliner_name, 'w').close()
+            dist_name = os.path.join(solution_folder, 'dist.txt')
+            open(dist_name, 'w').close()
 
             nr_image = len([name for name in os.listdir(preimage_folder) if name.endswith('.jpg')])
             for idx in tqdm(range(nr_image), desc=f'[{sequence_idx:03d}] {preimage_folder}'):
@@ -162,17 +194,28 @@ def starburst(dataset_path: str, subjects: list):
                 thres = 5E-4
                 epsilon = 8E-4
                 test = np.zeros([h, w, 3], dtype=np.uint8)
-                H = RANSAC(features, iter=500, thres=thres)
+                if H_last == 0:
+                    H, inliner = RANSAC(center, features, 200, thres)
+                else:
+                    H, inliner = RANSAC(center, features, 200, thres, H_last)
+                    H_last = H
                 x_coord = np.linspace(0,640,640)
                 y_coord = np.linspace(0,480,480)
                 X_coord, Y_coord = np.meshgrid(x_coord, y_coord)
                 Z_coord = H[0]/(-H[5]) * X_coord ** 2 + H[1]/(-H[5]) * X_coord * Y_coord + H[2]/(-H[5]) * Y_coord**2 + H[3]/(-H[5]) * X_coord + H[4]/(-H[5]) * Y_coord
                 ellipse = Z_coord-1 >= thres-epsilon
-                test[:, :, 0] = ellipse.astype(np.uint8) * 255
+                test[:, :, 1] = ellipse.astype(np.uint8) * 255
+                for f in features:
+                    test[f[0], f[1], 1] = 0
+                    test[f[0], f[1], 2] = 255
+                for hh in range(3):
+                    for ww in range(3):
+                        test[center[0]-1+hh, center[1]-1+ww, 1] = 255
+                        test[center[0]-1+hh, center[1]-1+ww, 2] = 255
 
                 # label
                 # --output
-                cv2.imwrite(label_name, test[:, :, 0])
+                cv2.imwrite(label_name, test[:, :, :])
                 
                 # # confidence
                 # # --average probability of label
@@ -194,3 +237,18 @@ def starburst(dataset_path: str, subjects: list):
                 # # --remove conf_real.txt for submission
                 # if os.path.exists(conf_real_name) == True:
                 #     os.remove(conf_real_name)
+
+                # inliner
+                with open(inliner_name, 'a') as f:
+                    f.write(str(inliner) + '\n')
+                
+                # distance between deepeye and starburst
+                if idx==0:
+                    dist = 0
+                else:
+                    dist = distance.euclidean(center_last, center)
+                center_last = center
+                with open(dist_name, 'a') as f:
+                    f.write(str(dist) + '\n')
+                
+                
