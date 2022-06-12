@@ -12,7 +12,7 @@ def deepVOG(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.
     sequence_idx = 0
     for subject in subjects:
 
-        solution_dataset = os.path.join(dataset_path, subject+"_solution")
+        solution_dataset = os.path.join(dataset_path, subject+"_vog")
         if os.path.exists(solution_dataset) != True:
             os.mkdir(solution_dataset)
 
@@ -21,7 +21,7 @@ def deepVOG(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.
 
             # folders path
             preimage_folder = os.path.join(dataset_path, subject+"_preimage", f'{action_number + 1:02d}')
-            solution_folder = os.path.join(dataset_path, subject+"_solution", f'{action_number + 1:02d}')
+            solution_folder = os.path.join(dataset_path, subject+"_vog", f'{action_number + 1:02d}')
 
             # check whether folders exist
             if os.path.exists(solution_folder) != True:
@@ -30,10 +30,12 @@ def deepVOG(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.
                 os.mkdir(preimage_folder)
             
             # create and clear conf.txt, conf_real.txt
-            conf_name = os.path.join(solution_folder, 'conf.txt')
+            conf_name = os.path.join(solution_folder, 'conf_vog.txt')
             open(conf_name, 'w').close()
             conf_real_name = os.path.join(solution_folder, 'conf_real.txt')
             open(conf_real_name, 'w').close()
+            area_name = os.path.join(solution_folder, 'area.txt')
+            open(area_name, 'w').close()
 
             nr_image = len([name for name in os.listdir(preimage_folder) if name.endswith('.jpg')])
             for idx in tqdm(range(nr_image), desc=f'[{sequence_idx:03d}] {preimage_folder}'):
@@ -58,6 +60,7 @@ def deepVOG(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.
                 prediction_label = prediction_thres.astype(np.uint8) * 255
                 prediction_label = cv2.resize(prediction_label[0,:,:,:], (640, 480), interpolation=cv2.INTER_CUBIC)
                 cv2.imwrite(label_name, prediction_label[:,:,1])
+                area = np.count_nonzero(prediction_label[:,:,1])
                 
                 # confidence
                 # --average probability of label
@@ -72,10 +75,14 @@ def deepVOG(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.
                 else:
                     conf = 1
                 # --output
-                # with open(conf_real_name, 'a') as f:
-                #     f.write(str(conf_real) + '\n')
+                with open(conf_real_name, 'a') as f:
+                    f.write(str(conf_real) + '\n')
                 with open(conf_name, 'a') as f:
                     f.write(str(conf) + '\n')
                 # --remove conf_real.txt for submission
-                if os.path.exists(conf_real_name) == True:
-                    os.remove(conf_real_name)
+                # if os.path.exists(conf_real_name) == True:
+                #     os.remove(conf_real_name)
+                
+                # area
+                with open(area_name, 'a') as f:
+                    f.write(str(area) + '\n')

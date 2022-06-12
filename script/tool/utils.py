@@ -42,8 +42,8 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     # change the dataset & label you want to show
-    dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S4\26'
-    label_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S4_solution\26'
+    dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S4\01'
+    label_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\dataset\public\S4_starburst\01'
     
     nr_image = len([name for name in os.listdir(dataset_path) if name.endswith('.jpg')])
     print(nr_image)
@@ -66,5 +66,5 @@ if __name__ == '__main__':
         ax.imshow(blended)
         ax.axis('off')
         plt.draw()
-        plt.pause(0.01)
+        plt.pause(0.005)
     plt.close()

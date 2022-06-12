@@ -3,6 +3,7 @@ import deepeye
 import numpy as np
 import random
 from scipy.spatial import distance
+import tensorflow as tf
 import os
 import cv2
 
@@ -128,36 +129,43 @@ def RANSAC(f, iter, thres):
     return H_best
 
 def test_if_model_work():
-    eye_tracker = deepeye.DeepEye()
     dataset_path = r'C:\Users\ShaneWu\OneDrive\Desktop\Hw(senior)\CV\Final\CV22S_Ganzin\model'
-    image = cv2.imread(os.path.join(dataset_path, "147.jpg"))
-    h, w = image.shape[0], image.shape[1]
-    frame_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # image = cv2.imread(os.path.join(dataset_path, "1.png"))
+    image = tf.io.read_file(os.path.join(dataset_path, "1.png"))
+    image = tf.image.decode_png(image, channels=1)
+    test_name = os.path.join(dataset_path, 'test.txt')
+    open(test_name, 'w').close()
+    for h in range(image.shape[0]):
+        for w in range(image.shape[1]):
+            with open(test_name, 'a') as f:
+                f.write(str(image[h, w, :]) + '\n')
+    # h, w = image.shape[0], image.shape[1]
+    # frame_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    coords = eye_tracker.run(frame_gray)
-    center = [coords[1], coords[0]]
-    features, _ = Feature_point(image, center, thres=20, r=4)
-    test = np.zeros([h, w, 3], dtype=np.uint8)
+    # coords = eye_tracker.run(frame_gray)
+    # center = [coords[1], coords[0]]
+    # features, _ = Feature_point(image, center, thres=20, r=4)
+    # test = np.zeros([h, w, 3], dtype=np.uint8)
 
-    for f in features:
-        test[f[0], f[1], 1] = 255
-    cv2.imwrite(os.path.join(dataset_path, "test.png"), test)
-    thres = 5E-4
-    epsilon = 8E-4
-    H = RANSAC(features, iter=1000, thres=thres)
+    # for f in features:
+    #     test[f[0], f[1], 1] = 255
+    # cv2.imwrite(os.path.join(dataset_path, "test.png"), test)
+    # thres = 5E-4
+    # epsilon = 8E-4
+    # H = RANSAC(features, iter=1000, thres=thres)
 
-    x_coord = np.linspace(0,640,640)
-    y_coord = np.linspace(0,480,480)
-    X_coord, Y_coord = np.meshgrid(x_coord, y_coord)
-    Z_coord = H[0]/(-H[5]) * X_coord ** 2 + H[1]/(-H[5]) * X_coord * Y_coord + H[2]/(-H[5]) * Y_coord**2 + H[3]/(-H[5]) * X_coord + H[4]/(-H[5]) * Y_coord
-    ellipse = Z_coord-1 >= thres-epsilon
-    test[:, :, 0] = ellipse.astype(np.uint8) * 255
-    blended = alpha_blend(image, test, 0.5)
+    # x_coord = np.linspace(0,640,640)
+    # y_coord = np.linspace(0,480,480)
+    # X_coord, Y_coord = np.meshgrid(x_coord, y_coord)
+    # Z_coord = H[0]/(-H[5]) * X_coord ** 2 + H[1]/(-H[5]) * X_coord * Y_coord + H[2]/(-H[5]) * Y_coord**2 + H[3]/(-H[5]) * X_coord + H[4]/(-H[5]) * Y_coord
+    # ellipse = Z_coord-1 >= thres-epsilon
+    # test[:, :, 0] = ellipse.astype(np.uint8) * 255
+    # blended = alpha_blend(image, test, 0.5)
 
-    cv2.imwrite(os.path.join(dataset_path, "test_ellipse.png"), blended)
-    cv2.imshow('DeepEye', blended)
+    # cv2.imwrite(os.path.join(dataset_path, "test_ellipse.png"), blended)
+    # cv2.imshow('DeepEye', blended)
 
-    cv2.waitKey(0)
+    # cv2.waitKey(0)
 
 
 if __name__ == "__main__":

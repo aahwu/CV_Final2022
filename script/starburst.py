@@ -5,7 +5,7 @@ from scipy.spatial import distance
 import deepeye
 from tqdm import tqdm
 
-def Feature_point(image, *args, thres=20, r=4):
+def Feature_point(image, *args, thres=20, r=3):
 
     image = image.astype(int)
     h, w = image.shape[0], image.shape[1]
@@ -60,13 +60,9 @@ def Feature_point(image, *args, thres=20, r=4):
     # update center
     total_features = [[f[0], f[1]] for f in features] + [[f[0], f[1]] for f in features2]
     total_features = np.array(total_features)
-    center2 = total_features.mean(axis=0, dtype=np.uint)
     # for hh in range(3):
     #     for ww in range(3):
     #         test[center2[0]-1+hh, center2[1]-1+ww, 0:2] = 255
-
-    if distance.euclidean(center1, center2) < 5:
-        center = center2
 
     return total_features, center
 
@@ -118,6 +114,8 @@ def RANSAC(center_d, f, iter, thres, *args):
     k = 0
     max = 0
     while k<iter:
+        if len(f)==0:
+            return H_best, 0
         k += 1
         ran_index = np.random.randint(f.shape[0], size=5)
         ran_point = f[ran_index]
@@ -152,16 +150,16 @@ def starburst(dataset_path: str, subjects: list):
     sequence_idx = 0
     for subject in subjects:
 
-        solution_dataset = os.path.join(dataset_path, subject+"_solution")
+        solution_dataset = os.path.join(dataset_path, subject+"_starburst")
         if os.path.exists(solution_dataset) != True:
             os.mkdir(solution_dataset)
         H_last = np.zeros(6)
-        for action_number in range(26):
+        for action_number in range(16, 17):
             sequence_idx += 1
 
             # folders path
             preimage_folder = os.path.join(dataset_path, subject+"_preimage", f'{action_number + 1:02d}')
-            solution_folder = os.path.join(dataset_path, subject+"_solution", f'{action_number + 1:02d}')
+            solution_folder = os.path.join(dataset_path, subject+"_starburst", f'{action_number + 1:02d}')
 
             # check whether folders exist
             if os.path.exists(solution_folder) != True:
@@ -170,10 +168,10 @@ def starburst(dataset_path: str, subjects: list):
                 os.mkdir(preimage_folder)
             
             # create and clear conf.txt, conf_real.txt
-            # conf_name = os.path.join(solution_folder, 'conf.txt')
-            # open(conf_name, 'w').close()
-            # conf_real_name = os.path.join(solution_folder, 'conf_real.txt')
-            # open(conf_real_name, 'w').close()
+            conf_name = os.path.join(solution_folder, 'conf_star.txt')
+            open(conf_name, 'w').close()
+            area_name = os.path.join(solution_folder, 'area.txt')
+            open(area_name, 'w').close()
             inliner_name = os.path.join(solution_folder, 'inliner.txt')
             open(inliner_name, 'w').close()
             axis_name = os.path.join(solution_folder, 'axis.txt')
@@ -202,7 +200,7 @@ def starburst(dataset_path: str, subjects: list):
                 if H_last.any() == False:
                     H, inliner = RANSAC(center, features, 1000, thres)
                 else:
-                    H, inliner = RANSAC(center, features, 400, thres, H_last)
+                    H, inliner = RANSAC(center, features, 200, thres, H_last)
                 H_last = H
                 x_coord = np.linspace(0,640,640)
                 y_coord = np.linspace(0,480,480)
@@ -210,6 +208,7 @@ def starburst(dataset_path: str, subjects: list):
                 Z_coord = H[0]/(-H[5]) * X_coord ** 2 + H[1]/(-H[5]) * X_coord * Y_coord + H[2]/(-H[5]) * Y_coord**2 + H[3]/(-H[5]) * X_coord + H[4]/(-H[5]) * Y_coord
                 ellipse = Z_coord-1 >= thres-epsilon
                 test[:, :, 1] = ellipse.astype(np.uint8) * 255
+                area = np.count_nonzero(ellipse)
                 axis_ratio = ellipse_axis_length(H)
 
                 # for f in features:
@@ -224,26 +223,15 @@ def starburst(dataset_path: str, subjects: list):
                 # --output
                 cv2.imwrite(label_name, test[:, :, 1])
                 
-                # # confidence
-                # # --average probability of label
-                # prediction *= prediction_thres
-                # if np.sum(prediction_thres[0,:,:,1])==0:
-                #     conf_real = 0
-                # else:
-                #     conf_real = np.sum(prediction[0,:,:,1])/np.sum(prediction_thres[0,:,:,1])
-                # # --threshold
-                # if conf_real < conf_thres:
-                #     conf = 0
-                # else:
-                #     conf = 1
-                # # --output
-                # # with open(conf_real_name, 'a') as f:
-                # #     f.write(str(conf_real) + '\n')
-                # with open(conf_name, 'a') as f:
-                #     f.write(str(conf) + '\n')
-                # # --remove conf_real.txt for submission
-                # if os.path.exists(conf_real_name) == True:
-                #     os.remove(conf_real_name)
+                # confidence
+                # --threshold
+                if axis_ratio < 0.5 or axis_ratio > 2:
+                    conf = 0
+                else:
+                    conf = 1
+                # --output
+                with open(conf_name, 'a') as f:
+                    f.write(str(conf) + '\n')
 
                 # inliner
                 with open(inliner_name, 'a') as f:
@@ -252,6 +240,10 @@ def starburst(dataset_path: str, subjects: list):
                 # axis
                 with open(axis_name, 'a') as f:
                     f.write(str(axis_ratio) + '\n')
+                    
+                # area
+                with open(area_name, 'a') as f:
+                    f.write(str(area) + '\n')
                 # # distance between deepeye and starburst
                 # if idx==0:
                 #     dist = 0

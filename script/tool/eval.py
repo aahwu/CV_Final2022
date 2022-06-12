@@ -65,9 +65,13 @@ def benchmark(dataset_path: str, subjects: list):
     output_conf = []
     sequence_idx = 0
     for subject in subjects:
+        result_folder = os.path.join(dataset_path, subject+"_solution")
+        result_name = os.path.join(result_folder, 'result.txt')
+        open(result_name, 'w').close()
         for action_number in range(26):
             image_folder = os.path.join(dataset_path, subject, f'{action_number + 1:02d}')
             solution_folder = os.path.join(dataset_path, subject+"_solution", f'{action_number + 1:02d}')
+            conf_folder = os.path.join(dataset_path, subject+"_solution", f'{action_number + 1:02d}')
             sequence_idx += 1
             nr_image = len([name for name in os.listdir(image_folder) if name.endswith('.jpg')])
             iou_meter_sequence.reset()
@@ -77,7 +81,7 @@ def benchmark(dataset_path: str, subjects: list):
             if not os.path.exists(label_name):
                 print(f'Labels are not available for {image_folder}')
                 continue
-            conf_name = os.path.join(solution_folder, 'conf.txt')
+            conf_name = os.path.join(conf_folder, 'conf.txt')
             with open(conf_name, 'r') as f:
                 confs = f.readlines()
             # for idx in tqdm(range(nr_image), desc=f'[{sequence_idx:03d}] {image_folder}'):
@@ -111,6 +115,13 @@ def benchmark(dataset_path: str, subjects: list):
             print(f'Average negative: {an_temp:.4f}')
             print(f'Average true negative rate: {atnr_temp:.4f}')
             print(f'Benchmark score: {score_temp:.4f}')
+
+            with open(result_name, 'a') as f:
+                f.write(f'[{sequence_idx:03d}] Weighted IoU: {wiou_temp:.4f}\n')
+                f.write(f'Average true negative: {atn_temp:.4f}\n')
+                f.write(f'Average negative: {an_temp:.4f}\n')
+                f.write(f'Average true negative rate: {atnr_temp:.4f}\n')
+                f.write(f'Benchmark score: {score_temp:.4f}\n\n')
     tn_rates, tn, n = true_negative_curve(np.array(output_conf), np.array(label_validity))
     wiou = iou_meter.avg()
     atnr = np.mean(tn_rates)
@@ -118,6 +129,10 @@ def benchmark(dataset_path: str, subjects: list):
     print(f'\n\nOverall weighted IoU: {wiou:.4f}')
     print(f'Average true negative rate: {atnr:.4f}')
     print(f'Benchmark score: {score:.4f}')
+    with open(result_name, 'a') as f:
+        f.write(f'\n\nOverall weighted IoU: {wiou:.4f}\n')
+        f.write(f'Average true negative rate: {atnr:.4f}\n')
+        f.write(f'Benchmark score: {score:.4f}')
 
     return score
 
