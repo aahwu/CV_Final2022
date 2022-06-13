@@ -20,7 +20,7 @@ def deepVOG(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.
             sequence_idx += 1
 
             # folders path
-            preimage_folder = os.path.join(dataset_path, subject+"_preimage", f'{action_number + 1:02d}')
+            preimage_folder = os.path.join(dataset_path, subject, f'{action_number + 1:02d}')
             solution_folder = os.path.join(dataset_path, subject+"_vog", f'{action_number + 1:02d}')
 
             # check whether folders exist
@@ -49,7 +49,7 @@ def deepVOG(dataset_path: str, subjects: list, conf_thres: int, nn_thres: int=0.
 
                 # inference
                 image = cv2.resize(image, (320, 240), interpolation=cv2.INTER_LINEAR)
-                img = np.zeros((1, 240, 320, 3))
+                img = np.zeros((1, 240, 320, 1))
                 img[:,:,:,:] = (image[:, :, 0]/255).reshape(1, 240, 320, 1)
                 prediction = model.predict(img)
 

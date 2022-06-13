@@ -95,7 +95,7 @@ def DeepVOG_net(input_shape = (240, 320, 3), filter_size= (3,3)):
     X_out = decoding_block(X = X_out, X_jump = X_jump1, filter_size= filter_size, filters_num= 32, 
                                  layer_num= 1, block_type = "up", stage = 5, s = 1, up_sampling = False)
     # Output layer operations
-    X_out = Conv2D(filters = 3, kernel_size = (1,1) , strides = (1,1), padding = 'valid',
+    X_out = Conv2D(filters = 2, kernel_size = (1,1) , strides = (1,1), padding = 'valid',
                    name = "conv_out", kernel_initializer = glorot_uniform())(X_out)
     X_out = Activation("softmax")(X_out)
     model = Model(inputs = X_input, outputs = X_out, name='Pupil')
@@ -104,6 +104,6 @@ def DeepVOG_net(input_shape = (240, 320, 3), filter_size= (3,3)):
 
 def load_DeepVOG():
     base_dir = os.path.dirname(__file__)
-    model = DeepVOG_net(input_shape = (240, 320, 3), filter_size= (10,10))
-    model.load_weights(os.path.join(base_dir, "DeepVOG_weights.h5"))
+    model = DeepVOG_net(input_shape = (240, 320, 1), filter_size= (10,10))
+    model.load_weights(os.path.join(base_dir, "my_model_weights_14.h5"))
     return model
